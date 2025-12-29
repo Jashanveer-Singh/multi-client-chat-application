@@ -10,14 +10,15 @@ namespace message {
 		MESSAGE,
 		KEEPALIVE,
 		SYNC,
+		CREATE_GROUP,
 	};
 
 	enum class SERVERMSGTYPE : uint8_t {
 		INVALID = 0,
 		MESSAGE ,
 		HEARTBEAT ,
-//		OK ,
-//		FAILURE ,
+		OK ,
+		FAILURE ,
 //		PUSH
 
 	};

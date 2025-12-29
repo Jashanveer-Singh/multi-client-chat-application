@@ -24,7 +24,7 @@ namespace message {
 			buffer.push_back(static_cast<uint8_t>(password.size()));
 			buffer.append(password);
 #ifdef _DEBUG
-			// assert(buffer.size() == size + 1);
+			assert(buffer.size() == size + 2);
 #endif
 
 			return true;
@@ -86,7 +86,7 @@ namespace message {
 			buffer.append(msg);
 
 #ifdef _DEBUG
-			// assert(buffer.size() == getMsgSize() + 3);
+			assert(buffer.size() == getMsgSize() + 2);
 #endif
 			return true;
 		}
@@ -115,6 +115,57 @@ namespace message {
 		std::string Message::getMsg() {
 			return msg;
 		}
+
+		CreateGroup::CreateGroup() = default;
+		CreateGroup::CreateGroup(std::string groupName, std::vector<std::string> members)
+			: groupName(groupName), members(members) {
+		}
+		bool CreateGroup::toBytes(std::string& buffer) {
+			buffer.reserve(buffer.size() + getMsgSize());
+			buffer.push_back(static_cast<uint8_t>(groupName.size()));
+			buffer.append(groupName);
+			buffer.push_back(static_cast<uint8_t>(members.size()));
+			for (const auto& member : members) {
+				buffer.push_back(static_cast<uint8_t>(member.size()));
+				buffer.append(member);
+			}
+#ifdef _DEBUG
+			assert(buffer.size() == getMsgSize() + 2);
+#endif
+			return true;
+		}
+		bool CreateGroup::fromBytes(const char* buffer) {
+			uint8_t groupNameSize = buffer[0];
+			groupName.resize(groupNameSize);
+			std::memcpy(groupName.data(), buffer + 1, groupNameSize);
+			uint8_t memberCount = buffer[groupNameSize + 1];
+			size_t offset = groupNameSize + 2;
+			members.clear();
+			for (uint8_t i = 0; i < memberCount; ++i) {
+				uint8_t memberSize = buffer[offset];
+				offset += 1;
+				std::string member;
+				member.resize(memberSize);
+				std::memcpy(member.data(), buffer + offset, memberSize);
+				members.push_back(member);
+				offset += memberSize;
+			}
+			return true;
+		}
+		uint8_t CreateGroup::getMsgSize() {
+			uint8_t size = groupName.size() + 2; // for groupName size and member count
+			for (const auto& member : members) {
+				size += member.size() + 1; // for each member size
+			}
+			return size;
+		}
+		std::string CreateGroup::getGroupName() {
+			return groupName;
+		}
+		std::vector<std::string> CreateGroup::getMembers() {
+			return members;
+		}
+
 
 		KeepAlive::KeepAlive() = default;
 		bool KeepAlive::toBytes(std::string& buffer) {

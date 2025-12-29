@@ -2,6 +2,7 @@
 
 #include <string>
 #include <stdint.h>
+#include <vector>
 #include "enums.h"
 namespace message {
 
@@ -40,6 +41,19 @@ namespace message {
 			Register(std::string username, std::string password);
 		};
 
+		class CreateGroup
+		{
+			std::string groupName;
+			std::vector<std::string> members;
+		public:
+			CreateGroup();
+			CreateGroup(std::string groupName, std::vector<std::string> members);
+			bool toBytes(std::string& buffer);
+			bool fromBytes(const char* buffer);
+			uint8_t getMsgSize();
+			std::string getGroupName();
+			std::vector<std::string> getMembers();
+		};
 //class Logout
 		//{
 		//	std::string username;

@@ -24,7 +24,7 @@ namespace message {
 			buffer.push_back(static_cast<uint8_t>(msg.size()));
 			buffer.append(msg);
 #ifdef _DEBUG
-			//assert(buffer.size() == size + 1);
+			assert(buffer.size() == size + 2);
 #endif
 			return true;
 		}
@@ -52,6 +52,34 @@ namespace message {
 		}
 		std::string Message::getMsg() {
 			return msg;
+		}
+
+		OkResponse::OkResponse() = default;
+		bool OkResponse::toBytes(std::string& buffer)
+		{
+			return true;
+		}
+		bool OkResponse::fromBytes(const char* buffer)
+		{
+			return true;
+		}
+		uint8_t OkResponse::getMsgSize()
+		{
+			return 0;
+		}
+
+		FailureResponse::FailureResponse() = default;
+		bool FailureResponse::toBytes(std::string& buffer)
+		{
+			return true;
+		}
+		bool FailureResponse::fromBytes(const char* buffer)
+		{
+			return true;
+		}
+		uint8_t FailureResponse::getMsgSize()
+		{
+			return 0;
 		}
 	}
 }

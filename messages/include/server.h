@@ -29,12 +29,21 @@ namespace message {
 //			bool fromBytes(const char* buffer);
 //			uint8_t getMsgSize();
 //		};
-//		class OkResponse {
-//
-//		};
-//		class FailureResponse
-//		{
-//		};
+		class OkResponse {
+		public:
+			OkResponse();
+			bool toBytes(std::string& buffer);
+			bool fromBytes(const char* buffer);
+			uint8_t getMsgSize();
+		};
+		class FailureResponse
+		{
+		public:
+			FailureResponse();
+			bool toBytes(std::string& buffer);
+			bool fromBytes(const char* buffer);
+			uint8_t getMsgSize();
+		};
 //		class Push
 //		{
 //		};
