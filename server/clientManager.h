@@ -9,24 +9,12 @@ class ClientManager {
     std::mutex mtx;
 
 public:
-    void addClient(const std::string& username, SOCKET s) {
-        std::lock_guard<std::mutex> lock(mtx);
-        activeClients[username] = s;
-    }
+    void addClient(const std::string& username, SOCKET s);
 
-    void removeClient(const std::string& username) {
-        std::lock_guard<std::mutex> lock(mtx);
-        activeClients.erase(username);
-    }
+    void removeClient(const std::string& username);
 
-    SOCKET getSocket(const std::string& username) {
-        std::lock_guard<std::mutex> lock(mtx);
-        if (activeClients.count(username)) return activeClients[username];
-        return INVALID_SOCKET;
-    }
+    SOCKET getSocket(const std::string& username);
 
-    std::map<std::string, SOCKET> getAllClients() {
-        std::lock_guard<std::mutex> lock(mtx);
-        return activeClients;
+    std::map<std::string, SOCKET> getAllClients();
     }
 };

@@ -3,8 +3,8 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="client/client.vcxproj" />
-  <Project Path="logger/logger.vcxproj" />
-  <Project Path="messages/messages.vcxproj" />
-  <Project Path="server/server.vcxproj" />
+  <Project Path="client/client.vcxproj" Id="799be8d9-d567-4b25-9740-66f47adb660b" />
+  <Project Path="logger/logger.vcxproj" Id="cdc98bb2-e040-403f-9f83-42b5dcd78913" />
+  <Project Path="messages/messages.vcxproj" Id="01db6abf-a4c4-4f01-acbd-adc7f33522ff" />
+  <Project Path="server/server.vcxproj" Id="fd3e3e63-3986-4259-acbc-bbd9d40104ea" />
 </Solution>

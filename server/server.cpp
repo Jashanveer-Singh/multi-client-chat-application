@@ -5,6 +5,8 @@
 #include "message.h"
 #include "repo.h"
 #include "ClientManager.h"
+#include "groupManager.h"
+#include "clientToGroup.h"
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -12,6 +14,8 @@ class ChatServer {
     SOCKET listenSocket;
     Repository repo;
     ClientManager cm;
+    GroupManager gm;
+	ClientToGroup ctg;
     const int MAX_CLIENTS = 50;
     int currentClients = 0;
     std::mutex countMtx;
@@ -49,19 +53,19 @@ public:
     }
 
 private:
-    void handleClient(SOCKET s) {
+    void handleClient(SOCKET sock) {
         std::string currentUser = "";
 		char headerBuf[2];
 		message::msgHeader header;
 
         while (true) {
-            int res = recv(s, headerBuf, 2, 0);
+            int res = recv(sock, headerBuf, 2, 0);
             if (res <= 0) break; // Abrupt disconnection
 
 			header.fromBytes(headerBuf);
 
             std::vector<char> body(header.getMsgSize());
-            recv(s, body.data(), header.getMsgSize(), 0);
+            recv(sock, body.data(), header.getMsgSize(), 0);
 
             switch (header.getMsgType())
             {
@@ -72,10 +76,25 @@ private:
             {
                 message::client::Login logMsg;
                 logMsg.fromBytes(body.data());
-                //if (repo.validateUser(logMsg.getUsername(), logMsg.getPassword())) {
+                if (repo.validateUser(logMsg.getUsername(), logMsg.getPassword())) {
                     currentUser = logMsg.getUsername();
-                    cm.addClient(currentUser, s);
-                //}
+                    cm.addClient(currentUser, sock);
+
+                    std::string serverMsg;
+                    message::server::OkResponse okMsg;
+                    message::msgHeader resHeader((uint8_t)message::SERVERMSGTYPE::OK, okMsg.getMsgSize());
+                    resHeader.toBytes(serverMsg);
+                    okMsg.toBytes(serverMsg);
+                    sendToClient(logMsg.getUsername(), serverMsg);
+                }
+                else {
+                    std::string serverMsg;
+                    message::server::FailureResponse failMsg;
+                    message::msgHeader resHeader((uint8_t)message::SERVERMSGTYPE::FAILURE, failMsg.getMsgSize());
+                    resHeader.toBytes(serverMsg);
+                    failMsg.toBytes(serverMsg);
+                    sendToClient(logMsg.getUsername(), serverMsg);
+                }
 
                 break;
             }
@@ -86,9 +105,21 @@ private:
                 regMsg.fromBytes(body.data());
                 if (repo.userExists(regMsg.getUsername())) {
                     // Handle user already exists (send failure response)
+                    std::string serverMsg;
+                    message::server::FailureResponse failMsg;
+                    message::msgHeader resHeader((uint8_t)message::SERVERMSGTYPE::FAILURE, failMsg.getMsgSize());
+                    resHeader.toBytes(serverMsg);
+                    failMsg.toBytes(serverMsg);
+                    sendToClient(regMsg.getUsername(), serverMsg);
                     break;
                 }
                 repo.addUser(regMsg.getUsername(), regMsg.getPassword());
+                std::string serverMsg;
+                message::server::OkResponse okMsg;
+                message::msgHeader resHeader((uint8_t)message::SERVERMSGTYPE::OK, okMsg.getMsgSize());
+                resHeader.toBytes(serverMsg);
+                okMsg.toBytes(serverMsg);
+                sendToClient(regMsg.getUsername(), serverMsg);
 
                 break;
             }
@@ -116,6 +147,23 @@ private:
                 break;
             }
 
+            case (uint8_t)message::CLIENTMSGTYPE::CREATE_GROUP:
+            {
+                message::client::CreateGroup grpMsg;
+                grpMsg.fromBytes(body.data());
+				gm.addGroup(grpMsg.getGroupName(), grpMsg.getMembers());
+				for (const auto& member : grpMsg.getMembers()) {
+					ctg.addGroupToClient(member, grpMsg.getGroupName());
+				}
+                std::string serverMsg;
+                message::server::OkResponse okMsg;
+                message::msgHeader resHeader((uint8_t)message::SERVERMSGTYPE::OK, okMsg.getMsgSize());
+                resHeader.toBytes(serverMsg);
+                okMsg.toBytes(serverMsg);
+                sendToClient(currentUser, serverMsg);
+                break;
+			}
+
             case (uint8_t)message::CLIENTMSGTYPE::KEEPALIVE:
             {
 
@@ -128,8 +176,12 @@ private:
         }
 
         // Cleanup on disconnection
-        if (!currentUser.empty()) cm.removeClient(currentUser);
-        closesocket(s);
+        if (!currentUser.empty()) {
+            cm.removeClient(currentUser);
+			ctg.removeClient(currentUser);
+			gm.removeMember(currentUser);
+        }
+        closesocket(sock);
         std::lock_guard<std::mutex> lock(countMtx);
         currentClients--;
         std::cout << "Client disconnected. Total: " << currentClients << std::endl;
@@ -144,7 +196,7 @@ private:
 
     void sendToGroup(const std::string& groupName, const std::string& msg) {
         std::vector<std::string> members;
-        repo.getGroupMembers(groupName, members);
+		auto members = gm.getGroupMembers(groupName);
         for (const auto& member : members) {
             sendToClient(member, msg);
         }

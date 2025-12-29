@@ -142,10 +142,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="clientManager.h" />
+    <ClInclude Include="clientToGroup.h" />
+    <ClInclude Include="groupManager.h" />
     <ClInclude Include="repo.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="clientManager.cpp" />
+    <ClCompile Include="clientToGroup.cpp" />
+    <ClCompile Include="groupManager.cpp" />
     <ClCompile Include="heartbeat.cpp" />
+    <ClCompile Include="repo.cpp" />
     <ClCompile Include="server.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -21,12 +21,30 @@
     <ClInclude Include="clientManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="groupManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="clientToGroup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="server.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="heartbeat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="repo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="clientManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="clientToGroup.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="groupManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
