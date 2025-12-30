@@ -195,7 +195,6 @@ private:
 	}
 
     void sendToGroup(const std::string& groupName, const std::string& msg) {
-        std::vector<std::string> members;
 		auto members = gm.getGroupMembers(groupName);
         for (const auto& member : members) {
             sendToClient(member, msg);
