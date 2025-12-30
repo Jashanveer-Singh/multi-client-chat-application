@@ -20,3 +20,8 @@ std::map<std::string, SOCKET> ClientManager::getAllClients() {
 	std::lock_guard<std::mutex> lock(mtx);
 	return activeClients;
 }
+
+bool ClientManager::userActive(const std::string& username) {
+	std::lock_guard<std::mutex> lock(mtx);
+	return activeClients.count(username) > 0;
+}

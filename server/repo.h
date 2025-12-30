@@ -10,11 +10,12 @@ struct UserRecord {
 };
 
 class Repository {
-    std::string userFile = "users.txt";
-    std::string msgFile = "chat_history.txt";
-    std::mutex dbMutex;
+    std::string userFile{ "users.txt" };
+    std::string msgFile{ "chat_history.txt" };
+    std::mutex dbMutex{};
 
 public:
+    Repository();
     bool userExists(const std::string& username);
 
     bool validateUser(const std::string& username, const std::string& password);

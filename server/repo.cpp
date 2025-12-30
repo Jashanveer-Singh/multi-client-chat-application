@@ -1,5 +1,14 @@
 #include "repo.h"
 
+Repository::Repository() {
+	// Ensure user and message files exist
+	{
+		std::lock_guard<std::mutex> lock(dbMutex);
+		std::ofstream userOut(userFile, std::ios::app);
+		std::ofstream msgOut(msgFile, std::ios::app);
+	}
+}
+
 bool Repository::userExists(const std::string& username) {
 	std::lock_guard<std::mutex> lock(dbMutex);
 	std::ifstream in(userFile);
@@ -13,7 +22,7 @@ bool Repository::userExists(const std::string& username) {
 bool Repository::validateUser(const std::string& username, const std::string& password) {
 	std::lock_guard<std::mutex> lock(dbMutex);
 	std::ifstream in(userFile);
-	std::string u, p;
+	std::string u{ "" }, p{ "" };
 	while (in >> u >> p) {
 		if (u == username && p == password) return true;
 	}

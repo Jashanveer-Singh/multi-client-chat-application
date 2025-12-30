@@ -15,5 +15,7 @@ public:
 
     SOCKET getSocket(const std::string& username);
 
+	bool userActive(const std::string& username);
+
     std::map<std::string, SOCKET> getAllClients();
 };

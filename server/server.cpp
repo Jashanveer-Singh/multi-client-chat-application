@@ -85,7 +85,7 @@ private:
                     message::msgHeader resHeader((uint8_t)message::SERVERMSGTYPE::OK, okMsg.getMsgSize());
                     resHeader.toBytes(serverMsg);
                     okMsg.toBytes(serverMsg);
-                    sendToClient(logMsg.getUsername(), serverMsg);
+                    sendToClient(sock, serverMsg);
                 }
                 else {
                     std::string serverMsg;
@@ -93,7 +93,7 @@ private:
                     message::msgHeader resHeader((uint8_t)message::SERVERMSGTYPE::FAILURE, failMsg.getMsgSize());
                     resHeader.toBytes(serverMsg);
                     failMsg.toBytes(serverMsg);
-                    sendToClient(logMsg.getUsername(), serverMsg);
+                    sendToClient(sock, serverMsg);
                 }
 
                 break;
@@ -110,16 +110,19 @@ private:
                     message::msgHeader resHeader((uint8_t)message::SERVERMSGTYPE::FAILURE, failMsg.getMsgSize());
                     resHeader.toBytes(serverMsg);
                     failMsg.toBytes(serverMsg);
-                    sendToClient(regMsg.getUsername(), serverMsg);
+                    sendToClient(sock, serverMsg);
                     break;
                 }
                 repo.addUser(regMsg.getUsername(), regMsg.getPassword());
+				currentUser = regMsg.getUsername();
+				cm.addClient(currentUser, sock);
+
                 std::string serverMsg;
                 message::server::OkResponse okMsg;
                 message::msgHeader resHeader((uint8_t)message::SERVERMSGTYPE::OK, okMsg.getMsgSize());
                 resHeader.toBytes(serverMsg);
                 okMsg.toBytes(serverMsg);
-                sendToClient(regMsg.getUsername(), serverMsg);
+                sendToClient(sock, serverMsg);
 
                 break;
             }
@@ -139,9 +142,14 @@ private:
 					serverMsg.toBytes(sendBuffer);
 
                     if (!msg.getGroup().empty()) {
-                        sendToGroup(msg.getGroup(), sendBuffer);
+                        sendToGroup(currentUser, msg.getGroup(), sendBuffer);
                     } else {
-                        sendToClient(msg.getRecipient(), sendBuffer);
+                        SOCKET sock = cm.getSocket(msg.getRecipient());
+                        std::cout << msg.getRecipient() << ": " << sock;
+                        if (sock == INVALID_SOCKET) std::cout << " INVALID";
+						std::cout << "group: " << msg.getGroup();
+                        std::cout << std::endl;
+                        sendToClient(cm.getSocket(msg.getRecipient()), sendBuffer);
                     }
 				}
                 break;
@@ -151,16 +159,31 @@ private:
             {
                 message::client::CreateGroup grpMsg;
                 grpMsg.fromBytes(body.data());
-				gm.addGroup(grpMsg.getGroupName(), grpMsg.getMembers());
-				for (const auto& member : grpMsg.getMembers()) {
+                std::vector<std::string> filteredMembers;
+                for (const auto& member : grpMsg.getMembers()) {
+                    if (cm.userActive(member)) {
+                        filteredMembers.push_back(member);
+                    }
+				}
+				filteredMembers.push_back(currentUser);
+				gm.addGroup(grpMsg.getGroupName(), filteredMembers);
+				for (const auto& member : filteredMembers) {
 					ctg.addGroupToClient(member, grpMsg.getGroupName());
 				}
                 std::string serverMsg;
+				if (filteredMembers.empty()) {
+                    message::server::FailureResponse failMsg;
+                    message::msgHeader resHeader((uint8_t)message::SERVERMSGTYPE::FAILURE, failMsg.getMsgSize());
+                    resHeader.toBytes(serverMsg);
+                    failMsg.toBytes(serverMsg);
+                    sendToClient(sock, serverMsg);
+                    break;
+                }
                 message::server::OkResponse okMsg;
                 message::msgHeader resHeader((uint8_t)message::SERVERMSGTYPE::OK, okMsg.getMsgSize());
                 resHeader.toBytes(serverMsg);
                 okMsg.toBytes(serverMsg);
-                sendToClient(currentUser, serverMsg);
+                sendToClient(sock, serverMsg);
                 break;
 			}
 
@@ -187,17 +210,17 @@ private:
         std::cout << "Client disconnected. Total: " << currentClients << std::endl;
     }
 
-    void sendToClient(const std::string& username, const std::string& msg) {
-        SOCKET s = cm.getSocket(username);
-        if (s != INVALID_SOCKET) {
-            send(s, msg.c_str(), msg.size(), 0);
+    void sendToClient(SOCKET sock, const std::string& msg) {
+        if (sock != INVALID_SOCKET) {
+            send(sock, msg.c_str(), msg.size(), 0);
         }
 	}
 
-    void sendToGroup(const std::string& groupName, const std::string& msg) {
+    void sendToGroup(const std::string& sender, const std::string& groupName, const std::string& msg) {
 		auto members = gm.getGroupMembers(groupName);
         for (const auto& member : members) {
-            sendToClient(member, msg);
+			if (member == sender) continue; // Don't send to sender
+            sendToClient(cm.getSocket(member), msg);
         }
 	}
 };
