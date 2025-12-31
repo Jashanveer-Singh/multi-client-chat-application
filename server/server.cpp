@@ -7,6 +7,7 @@
 #include "ClientManager.h"
 #include "groupManager.h"
 #include "clientToGroup.h"
+#include "loggers.h"
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -36,7 +37,7 @@ public:
     }
 
     void run() {
-        std::cout << "Server started on port 8080..." << std::endl;
+        infoLog.log("Server started on port 8080...");
         while (true) {
             sockaddr_in clientAddr;
             int clientSize = sizeof(clientAddr);
@@ -60,7 +61,11 @@ private:
 
         while (true) {
             int res = recv(sock, headerBuf, 2, 0);
-            if (res <= 0) break; // Abrupt disconnection
+            if (res <= 0) {
+                errorLog.log("Connection abruptly terminated with socket: " + std::to_string(sock) + 
+                    (currentUser.empty() ? "" : std::string(", name: ") + currentUser));
+                break; // Abrupt disconnection
+            }
 
 			header.fromBytes(headerBuf);
 
@@ -79,15 +84,17 @@ private:
                 if (repo.validateUser(logMsg.getUsername(), logMsg.getPassword())) {
                     currentUser = logMsg.getUsername();
                     cm.addClient(currentUser, sock);
-
+                    infoLog.log(currentUser + " logined");
                     std::string serverMsg;
                     message::server::OkResponse okMsg;
                     message::msgHeader resHeader((uint8_t)message::SERVERMSGTYPE::OK, okMsg.getMsgSize());
                     resHeader.toBytes(serverMsg);
                     okMsg.toBytes(serverMsg);
                     sendToClient(sock, serverMsg);
+
                 }
                 else {
+                    infoLog.log("failed login attempt from socket: " + std::to_string(sock));
                     std::string serverMsg;
                     message::server::FailureResponse failMsg;
                     message::msgHeader resHeader((uint8_t)message::SERVERMSGTYPE::FAILURE, failMsg.getMsgSize());
@@ -144,11 +151,11 @@ private:
                     if (!msg.getGroup().empty()) {
                         sendToGroup(currentUser, msg.getGroup(), sendBuffer);
                     } else {
+#ifdef _DEBUG
                         SOCKET sock = cm.getSocket(msg.getRecipient());
-                        std::cout << msg.getRecipient() << ": " << sock;
-                        if (sock == INVALID_SOCKET) std::cout << " INVALID";
-						std::cout << "group: " << msg.getGroup();
-                        std::cout << std::endl;
+                        debugLog.log(msg.getRecipient() + ": " + std::to_string( sock));
+						debugLog.log( "group: " + msg.getGroup());
+#endif
                         sendToClient(cm.getSocket(msg.getRecipient()), sendBuffer);
                     }
 				}
@@ -207,7 +214,7 @@ private:
         closesocket(sock);
         std::lock_guard<std::mutex> lock(countMtx);
         currentClients--;
-        std::cout << "Client disconnected. Total: " << currentClients << std::endl;
+        infoLog.log("Client disconnected. Total: " + currentClients);
     }
 
     void sendToClient(SOCKET sock, const std::string& msg) {
